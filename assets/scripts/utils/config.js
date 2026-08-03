@@ -111,6 +111,28 @@ const SpeedPortal = {
 let playerSpeed = SpeedPortal.ONE_TIMES;
 const d = 0.9;
 const p = 1.916398;
+const speedPhysicsTable = [
+  { speed: SpeedPortal.HALF, mod: 0.7, yStart: 21.240064, gravity: 1.880398 },
+  { speed: SpeedPortal.ONE_TIMES, mod: 0.9, yStart: 22.360064, gravity: 1.916398 },
+  { speed: SpeedPortal.TWO_TIMES, mod: 1.1, yStart: 22.840064, gravity: 1.914398 },
+  { speed: SpeedPortal.THREE_TIMES, mod: 1.3, yStart: 22.460064, gravity: 1.922398 },
+  { speed: SpeedPortal.FOUR_TIMES, mod: 1.6, yStart: 22.460064, gravity: 1.922398 }
+];
+function getSpeedPhysics() {
+  for (const entry of speedPhysicsTable) {
+    if (entry.speed === playerSpeed) return entry;
+  }
+  return speedPhysicsTable[1];
+}
+function getJumpVelocity() {
+  return getSpeedPhysics().yStart;
+}
+function getGravity() {
+  return getSpeedPhysics().gravity;
+}
+function getSpeedMod() {
+  return getSpeedPhysics().mod;
+}
 const f = 600;
 const g = a;
 const jumpPadType = "jump_pad";

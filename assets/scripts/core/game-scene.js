@@ -8186,7 +8186,7 @@ _applyMirrorEffect() {
   _flipDualBallForOverlap(player, state) {
     if (!player || !state || !state.isBall) return false;
     const flipMod = state.gravityFlipped ? -1 : 1;
-    state.yVelocity = flipMod * 22.360064 * (state.isMini ? 0.8 : 1);
+    state.yVelocity = flipMod * getJumpVelocity() * (state.isMini ? 0.8 : 1);
     player.flipGravity(!state.gravityFlipped);
     state.onGround = false;
     state.onCeiling = false;
