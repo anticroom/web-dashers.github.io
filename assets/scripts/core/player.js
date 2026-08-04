@@ -3382,11 +3382,19 @@ if (this.p.isFlying || this.p.isUfo) {
     if (this.p.upKeyDown) {
       _0x203040 = -1;
     }
-    if (!this.p.upKeyDown && !this.playerIsFalling() && !this.p._slopeBounceActive) {
+    let isFalling = this.playerIsFalling();
+    if (this._scene?._isDual) {
+      if (this.p.gravityFlipped) {
+        isFalling = this.p.yVelocity > p;
+      } else {
+        isFalling = this.p.yVelocity < -p; 
+      }
+    }
+    if (!this.p.upKeyDown && !isFalling && !this.p._slopeBounceActive) {
       _0x203040 = 1.2;
     }
     let _0x2d237f = 0.4;
-    if (this.p.upKeyDown && this.playerIsFalling()) {
+    if (this.p.upKeyDown && isFalling) {
       _0x2d237f = 0.5;
     }
     this.p.yVelocity -= p * _0x130c46 * this.flipMod() * _0x203040 * _0x2d237f * _shipMiniScale;
@@ -3402,13 +3410,13 @@ if (this.p.isFlying || this.p.isUfo) {
         this.p.yVelocity = Math.min(this.p.yVelocity, 16 * _shipMiniScale);
       }
     }
-    if (this.p._slopeBounceActive && (this.playerIsFalling() || this.p.onGround)) {
+    if (this.p._slopeBounceActive && (isFalling || this.p.onGround)) {
       this.p._slopeBounceActive = false;
     }
   }
-_updateBallJump(_0x2fe319) {
-    const _0x144266 = p * 0.6;
-    let prioritizeOrb = this._shouldPrioritizeGroundOrbInput();
+  _updateBallJump(_0x2fe319) {
+      const _0x144266 = p * 0.6;
+      let prioritizeOrb = this._shouldPrioritizeGroundOrbInput();
 
     if (!prioritizeOrb && this.p.upKeyPressed && this.p.canJump) {
       const _0x47d739 = this.flipMod();
@@ -3435,39 +3443,57 @@ _updateBallJump(_0x2fe319) {
       const _0x1439be = this.p.gravityFlipped ? this.p.yVelocity > p * 2 : this.p.yVelocity < -(p * 2);
       if (_0x1439be) {
         this.p.onGround = false;
+        this.p.canJump = false;
+        this.p.yVelocity *= 0.6;
+        return;
+      }
+      
+      if (this.playerIsFalling()) {
+        this.p.canJump = false;
+      }
+      this.p.yVelocity -= _0x144266 * _0x2fe319 * this.flipMod();
+      if (this.p.gravityFlipped) {
+        this.p.yVelocity = Math.min(this.p.yVelocity, 30);
+      } else {
+        this.p.yVelocity = Math.max(this.p.yVelocity, -30);
+      }
+      if (this.playerIsFalling()) {
+        const _0x1439be = this.p.gravityFlipped ? this.p.yVelocity > p * 2 : this.p.yVelocity < -(p * 2);
+        if (_0x1439be) {
+          this.p.onGround = false;
+        }
       }
     }
+  _updateWaveJump(dt) {
+      const _baseSpeed = this.p.isMini ? 22.7700072 : 11.3850036;
+      const _speedMod = (playerSpeed / 11.540004);
+      const _waveVel = _baseSpeed * _speedMod;
+      const isPushingUp = this.p.upKeyDown; 
+      let _0x312a7f = (isPushingUp ? 1 : -1) * this.flipMod() * _waveVel;
+
+      if (this.p.onGround || this.p.onCeiling) {
+          const movingAwayFromCeiling = this.p.onCeiling && !isPushingUp;
+          const movingAwayFromFloor = this.p.onGround && isPushingUp;
+
+          if (movingAwayFromCeiling || movingAwayFromFloor) {
+              this.p.onGround = false;
+              this.p.onCeiling = false;
+          } else {
+              _0x312a7f = 0;
+          }
+      }
+
+      this.p.yVelocity = _0x312a7f;
+      this.p.canJump = false;
+      this.p.isJumping = false;
+
+      const _waveAngle = this.p.isMini ? (62 * Math.PI / 180) : Math.PI / 4;
+      const _targetRotation = _0x312a7f === 0 ? 0 : _0x312a7f > 0 ? -_waveAngle : _waveAngle;
+      const _turnRate = 0.55;
+      const _0x5c24f7 = dt || 0;
+      const _turnT = Math.min(1, _turnRate * _0x5c24f7);
+      this._rotation = this.slerp2D(this._rotation, _targetRotation, _turnT);
   }
-_updateWaveJump(dt) {
-    const _baseSpeed = this.p.isMini ? 22.7700072 : 11.3850036;
-    const _speedMod = (playerSpeed / 11.540004);
-    const _waveVel = _baseSpeed * _speedMod;
-    const isPushingUp = this.p.upKeyDown; 
-    let _0x312a7f = (isPushingUp ? 1 : -1) * this.flipMod() * _waveVel;
-
-    if (this.p.onGround || this.p.onCeiling) {
-        const movingAwayFromCeiling = this.p.onCeiling && !isPushingUp;
-        const movingAwayFromFloor = this.p.onGround && isPushingUp;
-
-        if (movingAwayFromCeiling || movingAwayFromFloor) {
-            this.p.onGround = false;
-            this.p.onCeiling = false;
-        } else {
-            _0x312a7f = 0;
-        }
-    }
-
-    this.p.yVelocity = _0x312a7f;
-    this.p.canJump = false;
-    this.p.isJumping = false;
-
-    const _waveAngle = this.p.isMini ? (62 * Math.PI / 180) : Math.PI / 4;
-    const _targetRotation = _0x312a7f === 0 ? 0 : _0x312a7f > 0 ? -_waveAngle : _waveAngle;
-    const _turnRate = 0.55;
-    const _0x5c24f7 = dt || 0;
-    const _turnT = Math.min(1, _turnRate * _0x5c24f7);
-    this._rotation = this.slerp2D(this._rotation, _targetRotation, _turnT);
-}
   _updateRobotJump(dt) {
     if (!this.rotateActionActive) {
       this.updateGroundRotation(dt);
@@ -4985,13 +5011,17 @@ _updateWaveJump(dt) {
     const _0x12bfe9 = _0x3a2c8e || _0x37f14a;
     const _0x3793a4 = [this._shipSpriteLayer, this._shipGlowLayer, this._shipOverlayLayer, this._shipExtraLayer];
     const _0xbd676f = [this._playerSpriteLayer, this._playerGlowLayer, this._playerOverlayLayer, this._playerExtraLayer];
-    const _0x476284 = (_0x12bfe9 && Number.isFinite(this._lastScreenX)) ? this._lastScreenX : (_0x4a45d7 - _0x3729ef._cameraX);
+    const _toEndScreenX = worldX => {
+      const screenX = worldX - _0x3729ef._cameraX;
+      return this.p.mirrored ? screenWidth - screenX : screenX;
+    };
+    const _0x476284 = (_0x12bfe9 && Number.isFinite(this._lastScreenX)) ? this._lastScreenX : _toEndScreenX(_0x4a45d7);
     const _0x1ed1ce = (_0x12bfe9 && Number.isFinite(this._lastScreenY)) ? this._lastScreenY : (b(_0x501b73) + _0x3729ef._cameraY);
     const _0x4d5f0d = _0x476284;
     const _0x3e4581 = _0x1ed1ce;
-    const _0x6f5a9d = _0x1f2e19 - _0x3729ef._cameraX;
+    const _0x6f5a9d = _toEndScreenX(_0x1f2e19);
     const _0x31cb6d = b(_0x8bc9f4) + _0x3729ef._cameraY;
-    const _0x46e2df = _0x457676 - _0x3729ef._cameraX;
+    const _0x46e2df = _toEndScreenX(_0x457676);
     const _0x23fbf2 = b(_0x3ade39) + _0x3729ef._cameraY;
     const _0x3fc5a5 = _0x11b580.map(_0x5c0e81 => {
       let _0x5cbb0a = 0;
@@ -5028,7 +5058,7 @@ _updateWaveJump(dt) {
         const spriteWidth = _0x51c4a8.val;
         const _0x2478d6 = (1 - spriteWidth) ** 3 * _0x1295ea + (1 - spriteWidth) ** 2 * 3 * spriteWidth * _0x1295ea + (1 - spriteWidth) * 3 * spriteWidth ** 2 * _0x1f2e19 + spriteWidth ** 3 * _0x457676;
         const _0x148e69 = (1 - spriteWidth) ** 3 * _0x47ae60 + (1 - spriteWidth) ** 2 * 3 * spriteWidth * _0x47ae60 + (1 - spriteWidth) * 3 * spriteWidth ** 2 * _0x8bc9f4 + spriteWidth ** 3 * _0x3ade39;
-        let _0x3d0365 = _0x2478d6 - _0x3729ef._cameraX;
+        let _0x3d0365 = _toEndScreenX(_0x2478d6);
         let _0x3790a9 = b(_0x148e69) + _0x3729ef._cameraY;
         if (_0x12bfe9) {
           _0x3d0365 = (1 - spriteWidth) ** 3 * _0x4d5f0d + (1 - spriteWidth) ** 2 * 3 * spriteWidth * _0x4d5f0d + (1 - spriteWidth) * 3 * spriteWidth ** 2 * _0x6f5a9d + spriteWidth ** 3 * _0x46e2df;

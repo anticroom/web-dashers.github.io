@@ -956,6 +956,61 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       this._fitBitmapText(songAuthorText, songBoxW - 100);
       this._playOverlayObjects.push(songAuthorText);
 
+      if (lvl.customSongID && lvl.customSongID !== "0") {
+        const downloadBtnX = centerX + songBoxW / 2 - 50;
+        const downloadBtnY = songBoxY + 40;
+        const downloadBtn = this.add.image(downloadBtnX, downloadBtnY, "GJ_GameSheet03", "GJ_downloadBtn_001.png").setScrollFactor(0).setDepth(504).setInteractive();
+        this._playOverlayObjects.push(downloadBtn);
+        let isDownloading = false;
+        let abortController = null;
+        let isDownloaded = false;
+        const updateBtnState = async () => {
+          if (!downloadBtn || !downloadBtn.scene) return;
+          if (isDownloading) {
+            downloadBtn.setTexture("GJ_GameSheet03", "GJ_cancelDownloadBtn_001.png");
+          } else {
+            isDownloaded = await window.SongDB.isDownloaded(lvl.customSongID);
+            if (downloadBtn && downloadBtn.scene) {
+              downloadBtn.setTexture("GJ_GameSheet03", isDownloaded ? "GJ_trashBtn_001.png" : "GJ_downloadBtn_001.png");
+            }
+          }
+        };
+        updateBtnState();
+        this._makeBouncyButton(downloadBtn, 1, async () => {
+          if (isDownloading) {
+            if (abortController) abortController.abort();
+            isDownloading = false;
+            updateBtnState();
+            return;
+          }
+          if (isDownloaded) {
+            await window.SongDB.delete(lvl.customSongID);
+            updateBtnState();
+            return;
+          }
+          isDownloading = true;
+          updateBtnState();
+          abortController = new AbortController();
+          try {
+            const workerUrl = `https://fetchsongid.lasokar.workers.dev/?id=${encodeURIComponent(lvl.customSongID)}`;
+            const audioRes = await fetch(workerUrl, { signal: abortController.signal });
+            if (!audioRes.ok) throw new Error("Failed to download audio from worker");
+            const arrayBuf = await audioRes.arrayBuffer();
+            await window.SongDB.save(lvl.customSongID, arrayBuf, this.sound.context);
+          } catch (err) {
+            if (err.name === 'AbortError') {
+              console.log('Download cancelled.');
+            } else {
+              console.warn("Failed to download song:", err);
+            }
+          } finally {
+            isDownloading = false;
+            abortController = null;
+            updateBtnState();
+          }
+        });
+      }
+
       if (lvl.customSongID) {
         const PROXY_BASE = (window._gdProxyUrl || "").replace(/\/$/, "");
         if (!PROXY_BASE) {
@@ -974,10 +1029,17 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
               for (let i = 0; i + 1 < ngParts.length; i += 2) ngMap[ngParts[i]] = ngParts[i + 1];
 
               const artistName = (ngMap["4"] || "Unknown").trim();
+              const songName = (ngMap["2"] || "Unknown").trim();
+
               if (artistName) {
                 songAuthor = artistName;
                 songAuthorText.setText("By: " + songAuthor);
                 this._fitBitmapText(songAuthorText, songBoxW - 100);
+              }
+
+              if (songName && typeof songNameText !== "undefined" && songNameText) {
+                songNameText.setText(songName);
+                this._fitBitmapText(songTitleText, songBoxW - 100);
               }
             })
             .catch(err => {
@@ -1033,7 +1095,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         const isCustomSong = !!customSongID && customSongID !== "0";
         const offset       = parseFloat(m["45"] || "0") || 0;
 
-        window._onlineLevelId     = "online_" + lvl.id;
+        window._onlineLevelId    = "online_" + lvl.id;
         window._onlineLevelString = levelString;
         window._onlineLevelName   = lvl.name || "Online Level";
         window._onlineSongOffset  = offset;
@@ -1047,31 +1109,43 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
         if (isCustomSong) {
           songKey = `ng_song_${customSongID}`;
           try {
+            const audioCtx = this.game.sound.context;
+            if (audioCtx.state === "suspended") await audioCtx.resume();
             const ngRes = await fetch(`${PROXY_BASE}/getGJSongInfo.php`, {
               method: "POST",
               headers: { "Content-Type": "application/x-www-form-urlencoded" },
               body: `songID=${customSongID}&secret=Wmfd2893gb7`
             });
             const ngText = ngRes.ok ? await ngRes.text() : "-1";
+            let ngMap = {};
             if (ngText && ngText !== "-1") {
               const ngParts = ngText.split("~|~");
-              const ngMap = {};
               for (let i = 0; i + 1 < ngParts.length; i += 2) ngMap[ngParts[i]] = ngParts[i + 1];
-              const songUrl = decodeURIComponent((ngMap["10"] || "").trim());
               songArtist = (ngMap["4"] || "Unknown").replace(/:$/, "").trim();
               songTitle  = (ngMap["2"] || "").trim() || null;
-              if (songUrl) {
-                const audioCtx = this.game.sound.context;
-                if (audioCtx.state === "suspended") await audioCtx.resume();
-                const proxiedUrl = songUrl.includes("geometrydashfiles.b-cdn.net")
-                  ? songUrl
-                  : `${PROXY_BASE}/audio-proxy?url=${encodeURIComponent(songUrl)}`;
-                const audioRes = await fetch(proxiedUrl);
-                const arrayBuf = await audioRes.arrayBuffer();
-                const decoded = await audioCtx.decodeAudioData(arrayBuf);
-                window._onlineSongBuffer = decoded;
-                window._onlineSongKey = songKey;
+            }
+            let arrayBuf = await window.SongDB.load(customSongID);
+            if (!arrayBuf) {
+              const workerUrl = `https://fetchsongid.lasokar.workers.dev/?id=${encodeURIComponent(customSongID)}`;
+              let audioRes = await fetch(workerUrl);
+              if (!audioRes.ok) {
+                const songUrl = decodeURIComponent((ngMap["10"] || "").trim());
+                if (songUrl) {
+                  const proxiedUrl = songUrl.includes("geometrydashfiles.b-cdn.net")
+                    ? songUrl
+                    : `${PROXY_BASE}/audio-proxy?url=${encodeURIComponent(songUrl)}`;
+                  audioRes = await fetch(proxiedUrl);
+                }
               }
+              if (audioRes && audioRes.ok) {
+                arrayBuf = await audioRes.arrayBuffer();
+                await window.SongDB.save(customSongID, arrayBuf);
+              }
+            }
+            if (arrayBuf) {
+              const decoded = await audioCtx.decodeAudioData(arrayBuf);
+              window._onlineSongBuffer = decoded;
+              window._onlineSongKey = songKey;
             }
           } catch (err) {
             console.warn("Failed to load custom song for online level", err);
@@ -3813,8 +3887,8 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       const rRaw = (colorHex >> 16) & 0xff;
       const gRaw = (colorHex >> 8)  & 0xff;
       const bRaw =  colorHex        & 0xff;
-      const topMul = isEveryEnd ? 0.30 : 0.65;
-      const botMul = isEveryEnd ? 0.18 : 0.42;
+      const topMul = isEveryEnd ? 0.48 : 0.92;
+      const botMul = isEveryEnd ? 0.18 : 0.52;
       const steps = 60;
       for (let i = 0; i < steps; i++) {
         const t = i / (steps - 1);
@@ -3845,9 +3919,9 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
     const tileW = groundFrame ? groundFrame.width : 1012;
     const numTiles = Math.ceil(sw / tileW) + 2;
     const groundTintHex = (colorHex) => {
-      const r = Math.round(((colorHex >> 16) & 0xff) * 0.45);
-      const g = Math.round(((colorHex >> 8)  & 0xff) * 0.45);
-      const b = Math.round(( colorHex        & 0xff) * 0.45);
+      const r = Math.round(((colorHex >> 16) & 0xff) * 0.72);
+      const g = Math.round(((colorHex >> 8)  & 0xff) * 0.72);
+      const b = Math.round(( colorHex        & 0xff) * 0.72);
       return (r << 16) | (g << 8) | b;
     };
     const staticGroundTiles = [];
@@ -3946,8 +4020,8 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       const r = Math.round(((colorHex >> 16) & 0xff) * mul);
       const g = Math.round(((colorHex >> 8)  & 0xff) * mul);
       const b = Math.round(( colorHex        & 0xff) * mul);
-      cardBg.fillStyle((r << 16) | (g << 8) | b, 0.92);
-      cardBg.fillRoundedRect(-cardW / 2, -cardH / 2, cardW, cardH, 14);
+      cardBg.fillStyle((r << 16) | (g << 8) | b, 0.75);
+      cardBg.fillRoundedRect(-cardW / 2, -cardH / 2, cardW, cardH, 18);
     };
     drawCardBg(bgHex, isEveryEnd(window.currentlevel[2]), isComingSoonPage());
     cardBounceContainer.add(cardBg);
@@ -4157,7 +4231,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       }
       let iconDisplayW = (iconFrame ? iconFrame.width : 80) * finalIconScale;
       const iconDisplayH = (iconFrame ? iconFrame.height : 80) * finalIconScale;
-      const nameLabel = this.add.bitmapText(0, 0, "bigFont", lvl[1], 50)
+      const nameLabel = this.add.bitmapText(0, 0, "bigFont", lvl[1], 60)
         .setScrollFactor(0).setDepth(155).setOrigin(0, 0.5);
       const gap = 25;
       const naturalGroupW = iconDisplayW + gap + nameLabel.width;
@@ -4171,7 +4245,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       const scaledGap = gap * groupScale;
       const totalW = scaledIconW + scaledGap + scaledLabelW;
       const groupStartX = cardX - totalW / 2;
-      demonIcon.setScale(finalIconScale * groupScale);
+      demonIcon.setScale((finalIconScale * groupScale)+0.2);
       demonIcon.setPosition(groupStartX + scaledIconW / 2 - cardX, 0);
       nameLabel.setScale(groupScale);
       nameLabel.setPosition(groupStartX + scaledIconW + scaledGap - cardX, 0);
@@ -4193,7 +4267,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       barObjs.push(modeLabel);
       cardContainer.add(modeLabel);
       const barBg = this.add.graphics().setScrollFactor(0).setDepth(154);
-      barBg.fillStyle(0x000000, 0.6);
+      barBg.fillStyle(0x000000, 0.5);
       barBg.fillRoundedRect(barX0, barAreaY - barH2 / 2, barW2, barH2, barH2 / 2);
       barObjs.push(barBg);
       cardContainer.add(barBg);
@@ -4227,7 +4301,7 @@ this._menuUpdateLogBtn = this.add.image(screenWidth - 30 - 50, 33, "GJ_WebSheet"
       barObjs.push(practModeLabel);
       cardContainer.add(practModeLabel);
       const practBarBg = this.add.graphics().setScrollFactor(0).setDepth(154);
-      practBarBg.fillStyle(0x000000, 0.6);
+      practBarBg.fillStyle(0x000000, 0.5);
       practBarBg.fillRoundedRect(barX0, practBarAreaY - barH2 / 2, barW2, barH2, barH2 / 2);
       barObjs.push(practBarBg);
       cardContainer.add(practBarBg);
