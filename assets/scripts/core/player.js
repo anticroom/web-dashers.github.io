@@ -2920,8 +2920,7 @@ if (this.p.isFlying || this.p.isUfo) {
   }
   _landOnSlopeFloor(gameObj, surfaceY, rideY, hitSize, footProbe, lastFootProbe, playersY) {
     const margin = Math.max(8, Math.abs(footProbe - lastFootProbe) + 4);
-    if (!this.p.gravityFlipped &&
-      (footProbe >= rideY || lastFootProbe >= rideY) &&
+    if ((footProbe >= rideY || lastFootProbe >= rideY) &&
       (this.p.yVelocity <= 0 || this.p.onGround) &&
       playersY <= rideY + hitSize + margin) {
       return { y: rideY + hitSize, onCeiling: false, collideBottom: surfaceY, collideTop: null, slopeAngle: gameObj.getSlopeAngleRad() };
@@ -2939,8 +2938,7 @@ if (this.p.isFlying || this.p.isUfo) {
   }
   _landOnSlopeCeilingFlipped(gameObj, surfaceY, rideY, hitSize, footProbe, lastFootProbe, playersY) {
     const margin = Math.max(8, Math.abs(footProbe - lastFootProbe) + 4);
-    if (this.p.gravityFlipped &&
-      (footProbe >= rideY || lastFootProbe >= rideY) &&
+    if ((footProbe >= rideY || lastFootProbe >= rideY) &&
       (this.p.yVelocity <= 0 || this.p.onGround) &&
       playersY <= rideY + hitSize + margin) {
       return { y: rideY + hitSize, onCeiling: true, collideBottom: null, collideTop: surfaceY, slopeAngle: gameObj.getSlopeAngleRad() };
