@@ -34,6 +34,7 @@ class PlayerState {
     this.upKeyDown = false;
     this.upKeyPressed = false;
     this.queuedHold = false;
+    this.jumpedOnPress = false;
     this._orbActivationConsumedForPress = false;
     this.isDead = false;
     this.mirrored = false;
@@ -3883,6 +3884,11 @@ if (this.p.isFlying || this.p.isUfo) {
     return 1.922398;
   }
   updateJump(_0x3d1c6f) {
+    if (_0x3d1c6f && this.p.jumpedOnPress) {
+      this.p.jumpedOnPress = false;
+      return;
+    }
+    const _pressed = this.p.upKeyPressed;
     if (this.p.pendingVelocity !== null) {
       this.p.yVelocity = this.p.pendingVelocity;
       this.p.pendingVelocity = null;
@@ -3943,6 +3949,9 @@ if (this.p.isFlying || this.p.isUfo) {
           this.p.onGround = false;
         }
       }
+    }
+    if (!_0x3d1c6f && _pressed && !this.p.upKeyPressed && !this.p.isUfo) {
+      this.p.jumpedOnPress = true;
     }
   }
   _shouldPrioritizeGroundOrbInput() {
