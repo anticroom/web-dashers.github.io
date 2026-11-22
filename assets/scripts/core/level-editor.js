@@ -1339,6 +1339,7 @@ class LevelEditor {
             const primarySharedBefore = this._getDualSharedSignature?.(this._state);
             this._player.updateJump(verticalDelta);
             this._state.y += this._state.yVelocity * verticalDelta;
+            this._playerWorldX += horizontalDelta;
             this._player.checkCollisions(this._playerWorldX - centerX);
             const primaryGravityChanged = this._isDual && !!this._state.gravityFlipped !== primaryGravityBefore;
             let primaryGravitySynced = false;
@@ -1352,8 +1353,6 @@ class LevelEditor {
             if (this._isDual && this._state.isDead && !this._state2.isDead) {
                 this._player2.killPlayer();
             }
-
-            this._playerWorldX += horizontalDelta;
 
             if (this._isDual && !this._state2.isDead) {
                 this._copyDualInputFlags?.(dualInputState, this._state2);
@@ -1370,7 +1369,7 @@ class LevelEditor {
                 if (!this._state2.queuedHold) this._state.queuedHold = false;
                 if (this._state2._orbActivationConsumedForPress) this._state._orbActivationConsumedForPress = true;
                 this._state2.y += this._state2.yVelocity * verticalDelta;
-                this._player2.checkCollisions(this._playerWorldX - centerX - horizontalDelta);
+                this._player2.checkCollisions(this._playerWorldX - centerX);
                 if (this._isDual && !this._state2.isDead && secondarySharedBefore !== undefined && this._getDualSharedSignature?.(this._state2) !== secondarySharedBefore) {
                     this._syncDualGlobalsFromSecondary?.({
                         skipBallInputGravity: secondaryBallInputGravity,

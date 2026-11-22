@@ -9655,6 +9655,7 @@ _showwippopup() {
  const _primarySharedBefore = this._getDualSharedSignature(this._state);
  this._player.updateJump(verticalDelta);
  this._state.y += this._state.yVelocity * verticalDelta;
+ this._playerWorldX += horizontalDelta;
  this._player.checkCollisions(this._playerWorldX - centerX);
  const _primaryGravityChanged = this._isDual && !!this._state.gravityFlipped !== _primaryGravityBefore;
  let _primaryGravitySynced = false;
@@ -9667,7 +9668,6 @@ _showwippopup() {
  if (this._isDual && this._state.isDead && !this._state2.isDead) {
  this._player2.killPlayer();
  }
- this._playerWorldX += horizontalDelta;
  if (this._isDual && !this._state2.isDead) {
  this._copyDualInputFlags(_dualInputState, this._state2);
  if (this._shouldSuppressDualGravityAction(this._state2, _primaryGravitySynced)) {
@@ -9683,7 +9683,7 @@ _showwippopup() {
  if (!this._state2.queuedHold) this._state.queuedHold = false;
  if (this._state2._orbActivationConsumedForPress) this._state._orbActivationConsumedForPress = true;
  this._state2.y += this._state2.yVelocity * verticalDelta;
- this._player2.checkCollisions(this._playerWorldX - centerX - horizontalDelta);
+ this._player2.checkCollisions(this._playerWorldX - centerX);
  if (this._isDual && !this._state2.isDead && this._getDualSharedSignature(this._state2) !== _secondarySharedBefore) {
  this._syncDualGlobalsFromSecondary({
  skipBallInputGravity: _secondaryBallInputGravity,
