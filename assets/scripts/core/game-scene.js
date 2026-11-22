@@ -9634,10 +9634,11 @@ _showwippopup() {
  }
  let subStepDelta = subSteps > 0 ? quantizedDelta / subSteps : 0;
  let verticalDelta = subStepDelta * d;
- let horizontalDelta = subStepDelta * playerSpeed * d;
+ let horizontalDelta = 0;
  const initialY = this._state.y;
  const initialY2 = this._state2.y;
  for (let i = 0; i < subSteps; i++) {
+ horizontalDelta = subStepDelta * playerSpeed * d;
  this._state.lastY = this._state.y;
  this._physicsFrame++;
  this._physicsTick = (this._physicsTick || 0) + 1;

@@ -1319,13 +1319,14 @@ class LevelEditor {
 
     const subStepDelta = subSteps > 0 ? quantizedDelta / subSteps : 0;
     const verticalDelta = subStepDelta * d;
-    const horizontalDelta = subStepDelta * playerSpeed * d;
+    let horizontalDelta = 0;
     const previousNoClip = window.noClip;
 
     window.noClip = false;
 
     try {
         for (let i = 0; i < subSteps; i++) {
+            horizontalDelta = subStepDelta * playerSpeed * d;
             this._state.lastY = this._state.y;
             this._physicsFrame++;
             this._physicsTick = (this._physicsTick || 0) + 1;
