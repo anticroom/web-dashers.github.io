@@ -5187,7 +5187,7 @@ if (this.p.isFlying || this.p.isUfo) {
           let _0x869e42 = playersLastY - _solidSize + gamemodeAddition;
           let _0x3e7199 = playersY + _solidSize - gamemodeAddition;
           let _0x135a9d = playersLastY + _solidSize - gamemodeAddition;
-          const _0x55559d = this.p.isWave ? waveHitSize / 3 : 9;
+          const _0x55559d = this.p.isWave ? waveHitSize / 3 : playerSize * 0.3;
           let iscolliding;
           if (_hasCircleHitbox) {
             const _sdx = pieceWidth - gameObj.x;
@@ -5635,7 +5635,7 @@ if (this.p.isFlying || this.p.isUfo) {
 
             graphics.lineStyle(1, hexToHexadecimal("0000ff"), 1);
             // inner hitbox
-            graphics.strokeRect(trailX - 9, trailY - 9, 18, 18);
+            graphics.strokeRect(trailX - entrySize * 0.3, trailY - entrySize * 0.3, entrySize * 0.6, entrySize * 0.6);
           } else {
             const waveOuter = entrySize === 18 ? 6 : 9;
             const waveInner = waveOuter / 3;
@@ -5684,7 +5684,7 @@ if (this.p.isFlying || this.p.isUfo) {
 
       graphics.lineStyle(2, hexToHexadecimal("0000ff"), 1);
       // inner hitbox
-      graphics.strokeRect(_playerDrawX - 9, _0x1e788a - 9, 18, 18);
+      graphics.strokeRect(_playerDrawX - playerSize * 0.3, _0x1e788a - playerSize * 0.3, playerSize * 0.6, playerSize * 0.6);
     } else {
       const waveOuter = this.p.isMini ? 6 : 9;
       const waveInner = waveOuter / 3;
