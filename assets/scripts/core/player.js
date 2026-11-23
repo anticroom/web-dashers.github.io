@@ -2115,7 +2115,7 @@ if (this.p.isFlying || this.p.isUfo) {
       const _miniS = this.p.isMini ? 0.6 : 1;
       this._dashAnimationSprite.scaleY = this.p.gravityFlipped ? -_miniS : _miniS;
       this._dashAnimationSprite.scaleX = _miniS;
-      const _dashFwd = (typeof playerSpeed === "number" ? playerSpeed : 11.540004) * (typeof d === "number" ? d : 0.9);
+      const _dashFwd = typeof playerSpeed === "number" ? playerSpeed : 11.540004;
       this._dashAnimationSprite.rotation = Math.atan2(-(this.p.dashYVelocity || 0), _dashFwd);
     }
 
@@ -4954,8 +4954,7 @@ if (this.p.isFlying || this.p.isUfo) {
                 const _maxSin = Math.sin(70 * Math.PI / 180);
                 const _rawSin = -Math.sin(_dashRad);
                 const _dashSin = Math.max(-_maxSin, Math.min(_maxSin, _rawSin));
-                const _dashSpeed = 18;
-                const _dashVelY = _dashSin * _dashSpeed;
+                const _dashVelY = Math.tan(Math.asin(_dashSin)) * playerSpeed;
                 if (_orbId === 1751) {
                   this.flipGravity(!this.p.gravityFlipped);
                   this._syncOtherDualGravityForBlueBoost();
